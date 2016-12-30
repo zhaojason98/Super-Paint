@@ -1,0 +1,533 @@
+/*
+ * Name:Jason Zhao
+ * Date: April 20, 2016
+ * Description: Panel and BorderLayout for 
+ */
+import java.awt.GridLayout;
+import java.awt.BorderLayout;
+import java.awt.GridBagLayout;
+import java.awt.GridBagConstraints;
+import java.awt.Container;
+import java.awt.Color;
+import java.awt.Dimension;
+import java.awt.event.ActionListener;
+import java.awt.event.ActionEvent;
+import javax.swing.event.DocumentEvent;
+import javax.swing.event.DocumentListener;
+import java.awt.event.ItemListener;
+import java.awt.event.ItemEvent;
+import javax.swing.JFrame;
+import javax.swing.JLabel;
+import javax.swing.JPanel;
+import javax.swing.JButton;
+import javax.swing.JSeparator;
+import javax.swing.JComboBox;
+import javax.swing.JCheckBox;
+import javax.swing.JTextField;
+import javax.swing.JOptionPane;
+import javax.swing.JMenu;
+import javax.swing.JMenuBar;
+import javax.swing.JMenuItem;
+import java.awt.event.KeyEvent;
+import java.io.File;
+import java.io.FileWriter;
+import java.io.IOException;
+import java.io.BufferedReader;
+import java.io.FileReader;
+import java.io.FileNotFoundException;
+import javax.imageio.ImageIO;
+
+//Class for Frame of the GUI
+public class DrawFrame extends JFrame{
+    //Create instance variables
+    private JMenuBar menuBar; //menu bar where menu's are added
+    
+    private JMenu fileMenu;//file menu
+    
+    private JMenuItem menuAbout;//about submenu
+    private JMenuItem menuPreferences; //preferences sub menu
+    private JMenuItem menuSave;
+    private JMenuItem menuLoad;
+    private JMenuItem menuExit; //exit sub menu
+    
+    private LinkedList<String> prefList; //Dynamic List for preferences
+    private JLabel statusBar; //Display mouse location
+    private JLabel firstColourText; //Display first colour text
+    private JLabel secondColourText; //display second colour text
+    private JLabel shapeTypeText; //display shape text
+    private JLabel dashText; //display dash text
+    private JLabel strokeText; //display stroke test
+    private JButton undo; //undo button
+    private JButton redo; //redo button
+    private JButton clear; //clear button
+    private JComboBox colorBox; //color selection
+    private JComboBox secondColorBox;  //second color selection
+    private JComboBox typeBox; //shape type selection
+    private JCheckBox filledBox; //checkbox for if shape is filled
+    private JCheckBox gradiantBox; //check box if gradient
+    private JCheckBox isDashed; //check box if dashed
+    private JTextField strokeLength; //Text field for stroke length
+    private JTextField dashLength; //Text field for dash length
+    private JSeparator separator; //Separator
+    private JPanel paintLayout; //paint panel
+    private DrawPanel drawPanel; //draw panel
+    private Container container; // container
+    
+    
+    //Create color options
+    private String colorNames [] =
+    { "Black", "Blue", "Cyan", 
+        "Dark Gray", "Gray", "Green", "Light Gray", "Magenta",
+        "Orange", "Pink", "Red", "White", "Yellow" };
+    
+    private String shapeNames[] = {"Line","Rectangle","Oval"};
+    private int shapeTypes[] = {1,2,3};
+    
+    private final Color colors[] = { Color.BLACK, Color.BLUE, Color.CYAN, 
+        Color.DARK_GRAY, Color.GRAY, Color.GREEN, Color.LIGHT_GRAY, 
+        Color.MAGENTA, Color.ORANGE, Color.PINK, Color.RED, Color.WHITE, 
+        Color.YELLOW };
+    
+    @SuppressWarnings("unchecked")
+    //Constructor class for DrawFrame
+        public DrawFrame(){
+        super ("Paint Program");
+        
+        //Set instance variables
+        statusBar = new JLabel( "Click the mouse" );
+        paintLayout = new JPanel();
+        drawPanel = new DrawPanel(statusBar);
+        container = getContentPane();
+        
+        //Menu bar
+        menuBar = new JMenuBar();
+        fileMenu = new JMenu("File");
+        prefList = new LinkedList<String>();        
+        //Buttons
+        undo = new JButton("Undo");
+        redo = new JButton("Redo");
+        clear = new JButton("Clear");
+        //Colour boxes
+        colorBox = new JComboBox(colorNames);
+        colorBox.setMaximumRowCount(6);
+        secondColorBox = new JComboBox(colorNames);
+        secondColorBox.setMaximumRowCount(6);
+        firstColourText = new JLabel("First Colour:");
+        secondColourText = new JLabel("Second Colour:");
+        //Shape type and strokes
+        shapeTypeText = new JLabel("Shape Type:");
+        strokeText = new JLabel("Stroke:");
+        dashText = new JLabel("Dash Length:");
+        strokeLength = new JTextField(20);
+        dashLength = new JTextField(20);
+        typeBox = new JComboBox(shapeNames);
+        typeBox.setMaximumRowCount(3);
+        separator = new JSeparator (JSeparator.VERTICAL);
+        //Check boxes
+        filledBox = new JCheckBox("Filled");
+        gradiantBox = new JCheckBox("Gradiant");
+        isDashed = new JCheckBox("Dashed");
+        
+        //Set initial values from preference
+        try{
+            try (BufferedReader readPref = new BufferedReader(new FileReader("Preferences.log"))) {
+                String prefString;
+                while ((prefString = readPref.readLine()) != null) {
+                    prefList.addFront(prefString);
+                }
+                typeBox.setSelectedIndex(Integer.parseInt(prefList.indexValue(7)));
+                filledBox.setSelected(Boolean.parseBoolean(prefList.indexValue(6)));
+                gradiantBox.setSelected(Boolean.parseBoolean(prefList.indexValue(5)));
+                
+                colorBox.setSelectedIndex(Integer.parseInt(prefList.indexValue(4)));
+                secondColorBox.setSelectedIndex(Integer.parseInt(prefList.indexValue(3)));
+                
+                strokeLength.setText(prefList.indexValue(2));
+                dashLength.setText(prefList.indexValue(1));
+                isDashed.setSelected(Boolean.parseBoolean(prefList.indexValue(0)));
+            }
+            //Set default text values
+            catch (FileNotFoundException e){
+                strokeLength.setText("2.0");
+                dashLength.setText("10.0");
+            }
+        }
+        //File Exception
+        catch (IOException ioException){}
+        
+        
+        //Create layout
+        paintLayout.setLayout(new GridLayout(1,6));
+        
+        //Add menu
+        fileMenu.setMnemonic(KeyEvent.VK_F);
+        menuBar.add(fileMenu);
+        
+        menuAbout = new JMenuItem("About");
+        menuPreferences = new JMenuItem("Preferences");
+        menuSave = new JMenuItem("Save Image");
+        menuLoad = new JMenuItem("Load Image");
+        menuExit = new JMenuItem("Exit");
+        
+        //add to file menu
+        fileMenu.add(menuAbout);
+        fileMenu.add(menuPreferences);
+        fileMenu.add(menuSave);
+        fileMenu.add(menuLoad);
+        fileMenu.add(menuExit);
+        
+        setJMenuBar(menuBar);
+        
+        //add undo action listener
+        undo.addActionListener(
+                               new ActionListener(){
+            public void actionPerformed(ActionEvent event){
+                drawPanel.clearLastShape();
+            }
+        }
+        );
+        paintLayout.add(undo);
+        //add redo action listener
+        redo.addActionListener(
+                               new ActionListener(){
+            public void actionPerformed (ActionEvent event){
+                drawPanel.redoLastShape();
+            }
+        }
+        );
+        paintLayout.add(redo);
+        
+        //Add clear action listener
+        clear.addActionListener(
+                                new ActionListener(){
+            public void actionPerformed(ActionEvent event){
+                try{
+                        try{
+                        drawPanel.load("Blank.png");
+                        }
+                        catch (NullPointerException e){}
+                    }
+                    catch(IOException e){
+                        JOptionPane.showMessageDialog(null,"No such image","Image Error",JOptionPane.ERROR_MESSAGE);
+                    }
+                drawPanel.clearDrawing();
+            }
+        }
+        );
+        paintLayout.add(clear);
+        paintLayout.add(separator);
+        
+        //add combobox action listener
+        firstColourText.setPreferredSize(new Dimension(50, 10));
+        paintLayout.add(firstColourText);
+        colorBox.addItemListener(
+                                 new ItemListener(){
+            public void itemStateChanged(ItemEvent event){
+                if (event.getStateChange() == ItemEvent.SELECTED){
+                    drawPanel.set_currentShapeColor(colors[colorBox.getSelectedIndex()]);
+                }
+            }
+        }
+        );
+        paintLayout.add(colorBox);
+        paintLayout.add(separator);
+        
+        //add second combox box
+        paintLayout.add(secondColourText);
+        secondColorBox.addItemListener(
+                                       new ItemListener(){
+            public void itemStateChanged(ItemEvent event){
+                if (event.getStateChange() == ItemEvent.SELECTED){
+                    drawPanel.set_secondShapeColor(colors[secondColorBox.getSelectedIndex()]);
+                }
+            }
+        }
+        );
+        paintLayout.add(secondColorBox);
+        paintLayout.add(separator);
+        //add combobox action listener
+        paintLayout.add(shapeTypeText);
+        typeBox.addItemListener(
+                                new ItemListener(){
+            public void itemStateChanged(ItemEvent event){
+                if (event.getStateChange() == ItemEvent.SELECTED){
+                    drawPanel.set_currentShapeType(shapeTypes[typeBox.getSelectedIndex()]);
+                }
+            }
+        }
+        );
+        paintLayout.add(typeBox);
+        paintLayout.add(separator);
+        //add choice box action listener
+        filledBox.addItemListener(
+                                  new ItemListener(){
+            public void itemStateChanged(ItemEvent event){
+                if (event.getSource() == filledBox){
+                    drawPanel.set_currentShapeFilled(filledBox.isSelected());
+                }
+            }
+        }
+        );
+        paintLayout.add(filledBox);
+        paintLayout.add(separator);
+        //add graidance checkbox
+        gradiantBox.addItemListener(
+                                    new ItemListener(){
+            public void itemStateChanged(ItemEvent event){
+                if (event.getSource() == gradiantBox){
+                    drawPanel.set_currentGradiance(gradiantBox.isSelected());
+                }
+            }
+        }
+        );
+        paintLayout.add(gradiantBox);
+        paintLayout.add(separator);
+        //add stroke variable
+        strokeText.setPreferredSize(new Dimension(50,10));
+        paintLayout.add(strokeText);
+        strokeLength.getDocument().addDocumentListener(new DocumentListener() {
+            
+            public void changedUpdate(DocumentEvent e) {
+                warn();
+            }
+            public void removeUpdate(DocumentEvent e) {
+                if (strokeLength.getText().equals("")){}
+                else
+                    warn();
+            }
+            public void insertUpdate(DocumentEvent e) {
+                warn();
+            }
+            public void warn() {
+                try{
+                    drawPanel.set_strokeLength(Float.parseFloat(strokeLength.getText()));
+                }
+                catch(NumberFormatException e){
+                    JOptionPane.showMessageDialog(null,
+                                                  "Error: Please enter a valid number", "Error Massage",
+                                                  JOptionPane.ERROR_MESSAGE);
+                }
+            }
+        });
+        paintLayout.add(strokeLength);
+        paintLayout.add(separator);
+        //add JCheckBox isDashed
+        isDashed.addItemListener(
+                                 new ItemListener(){
+            public void itemStateChanged(ItemEvent event){
+                if (event.getSource() == isDashed){
+                    drawPanel.set_isDashed(isDashed.isSelected());
+                }
+            }
+        }
+        );
+        paintLayout.add(isDashed);
+        
+        //TextField for Dash Length
+        dashText.setPreferredSize(new Dimension(50,10));
+        paintLayout.add(dashText);
+        dashLength.getDocument().addDocumentListener(new DocumentListener() {
+            
+            public void changedUpdate(DocumentEvent e) {
+                warn();
+            }
+            public void removeUpdate(DocumentEvent e) {
+                if (dashLength.getText().equals("")){}
+                else
+                    warn();
+                
+            }
+            public void insertUpdate(DocumentEvent e) {
+                warn();
+            }
+            public void warn() {
+                //Exception for invalid textfield values
+                try{
+                    drawPanel.set_dashLength(Float.parseFloat(dashLength.getText()));
+                }
+                catch(NumberFormatException e){
+                    JOptionPane.showMessageDialog(null,
+                                                  "Error: Please enter a valid number", "Error Massage",
+                                                  JOptionPane.ERROR_MESSAGE);
+                }
+            }
+        });
+        paintLayout.add(dashLength);
+        
+        //add menu event handlers
+        MenuHandler handler = new MenuHandler();
+        menuAbout.addActionListener(handler);
+        menuPreferences.addActionListener(handler);
+        //Save Picture Option
+        menuSave.addActionListener(
+                                   new MenuHandler(){
+            public void actionPerformed (ActionEvent event){
+                if (event.getSource() == menuSave){
+                    try{
+                        JFrame saveFrame = new JFrame();
+                        String fileName = JOptionPane.showInputDialog(saveFrame,"Enter file name");
+                        drawPanel.save(fileName);
+                    }
+                    catch(IOException e){
+                        JOptionPane.showMessageDialog(null,"No such image","Image Error",JOptionPane.ERROR_MESSAGE);
+                    }
+                }
+            }
+        }
+        );
+        //Load Picture Option
+        menuLoad.addActionListener(
+                                   new MenuHandler(){
+            public void actionPerformed (ActionEvent event){
+                if (event.getSource() == menuLoad){
+                    try{
+                        try{
+                        JFrame saveFrame = new JFrame();
+                        String fileName = JOptionPane.showInputDialog(saveFrame,"Enter file name");
+                        drawPanel.load(fileName);
+                        }
+                        catch (NullPointerException e){}
+                    }
+                    catch(IOException e){
+                        JOptionPane.showMessageDialog(null,"No such image","Image Error",JOptionPane.ERROR_MESSAGE);
+                    }
+                }
+            }
+        }
+        );
+        menuExit.addActionListener(handler);
+        
+        
+        //add panel to frame
+        add(paintLayout,BorderLayout.NORTH);
+        add(drawPanel);
+        add(statusBar,BorderLayout.SOUTH);
+    }
+    
+    //private inner class for event handling
+    private class MenuHandler implements ActionListener{
+        //Create preference labels
+        JLabel shapeTypeText = new JLabel ("Shape Type: ");
+        JLabel isFilledText = new JLabel ("Filled: ");
+        JLabel isGradientText = new JLabel("Gradient: ");
+        JLabel firstColourText = new JLabel("First Colour: ");
+        JLabel secondColourText = new JLabel("Second Colour: ");
+        JLabel lineWidthText = new JLabel ("Line Width: ");
+        JLabel dashLengthText = new JLabel ("Dash Length: ");
+        JLabel isDashedText = new JLabel ("Dashed: ");
+        
+        //Create preference components
+        @SuppressWarnings("unchecked")
+        JComboBox shapeType = new JComboBox(shapeNames);
+        JCheckBox isShapeFilled = new JCheckBox();
+        JCheckBox isShapeGradient = new JCheckBox();
+        @SuppressWarnings("unchecked")
+        JComboBox firstColorBox = new JComboBox(colorNames);
+        @SuppressWarnings("unchecked")
+        JComboBox secondColorBox = new JComboBox(colorNames);
+        JTextField shapeStrokeLength = new JTextField(20);
+        JTextField shapeDashLength = new JTextField(20);
+        JCheckBox isShapeDashed = new JCheckBox();
+
+        //process menuItem events
+        public void actionPerformed (ActionEvent event){
+            //About Item Menu
+            if (event.getSource() == menuAbout){
+                JOptionPane.showMessageDialog(null,"Paint Program \n By:Jason Zhao \n Date: May 31st, 2016");
+            }
+            //Preference Item Menu
+            else if (event.getSource () == menuPreferences){
+                Object[] options = {"Save","Cancel"};
+                int optionSelected = JOptionPane.showOptionDialog(null,preferencePanel(),"Paint Program Preferences",JOptionPane.YES_NO_OPTION,JOptionPane.PLAIN_MESSAGE,null,options,options[1]);
+                //If User selected save, find option panel and yea
+                if (optionSelected == JOptionPane.YES_OPTION){
+                    try{
+                        File prefFile = new File("Preferences.log");
+                        
+                        try{
+                            //Write each text into a file
+                            if ( (shapeDashLength.getText().equals("")) || (shapeStrokeLength.getText().equals("")) ||(Float.parseFloat(shapeStrokeLength.getText()) > 0.0) || ((Float.parseFloat(shapeDashLength.getText())) > 0.0) ){
+                                FileWriter prefWriter = new FileWriter(prefFile, false);
+                                prefWriter.write(String.valueOf(shapeType.getSelectedIndex()));
+                                prefWriter.write(System.getProperty("line.separator"));
+                                prefWriter.write(Boolean.toString(isShapeFilled.isSelected()));
+                                prefWriter.write(System.getProperty("line.separator"));
+                                prefWriter.write(Boolean.toString(isShapeGradient.isSelected()));
+                                prefWriter.write(System.getProperty("line.separator"));
+                                prefWriter.write(String.valueOf(firstColorBox.getSelectedIndex()));
+                                prefWriter.write(System.getProperty("line.separator"));
+                                prefWriter.write(String.valueOf(secondColorBox.getSelectedIndex()));
+                                prefWriter.write(System.getProperty("line.separator"));
+                                if (shapeStrokeLength.getText().equals("")){
+                                    prefWriter.write("2.0");
+                                    prefWriter.write(System.getProperty("line.separator"));
+                                }
+                                else {
+                                    prefWriter.write(String.valueOf(Float.parseFloat(shapeStrokeLength.getText())));
+                                    prefWriter.write(System.getProperty("line.separator"));
+                                }
+                                if (shapeDashLength.getText().equals("")){
+                                    prefWriter.write("10.0");
+                                    prefWriter.write(System.getProperty("line.separator"));
+                                }
+                                else{
+                                    prefWriter.write(String.valueOf(Float.parseFloat(shapeDashLength.getText())));
+                                    prefWriter.write(System.getProperty("line.separator"));
+                                }
+                                prefWriter.write(Boolean.toString(isShapeDashed.isSelected()));
+                                prefWriter.close();
+                            }
+                        }
+                        //Invalid preference file
+                        catch(NumberFormatException e){
+                            JOptionPane.showMessageDialog(null,
+                                                          "PREFERENCES NOT SAVED \n Invalid Input Encountered", "Error Massage",
+                                                          JOptionPane.ERROR_MESSAGE);
+                        }
+                        
+                    }
+                    catch(IOException ioException){
+                        JOptionPane.showMessageDialog(null,"Invalid","Preference Error",JOptionPane.WARNING_MESSAGE);
+                    }
+                }
+            }
+            //Exit Menu Item
+            else if (event.getSource() == menuExit){
+                System.exit(0);
+            }
+        }
+        //Preference helper class
+        private JPanel preferencePanel(){
+            JPanel prefPanel = new JPanel ();
+            prefPanel.setLayout(new GridBagLayout());
+            
+            prefPanel.setBackground(Color.WHITE);
+            //Set gridbag anchors
+            GridBagConstraints left = new GridBagConstraints();
+            left.anchor = GridBagConstraints.EAST;
+            GridBagConstraints right = new GridBagConstraints();
+            right.weightx = 2.0;
+            right.fill = GridBagConstraints.HORIZONTAL;
+            right.gridwidth = GridBagConstraints.REMAINDER;
+            //Add each component to the preference menu
+            prefPanel.add(shapeTypeText, left);
+            prefPanel.add(shapeType,right);
+            prefPanel.add(isFilledText,left);
+            prefPanel.add(isShapeFilled,right);
+            prefPanel.add(isGradientText,left);
+            prefPanel.add(isShapeGradient,right);
+            prefPanel.add(firstColourText,left);
+            prefPanel.add(firstColorBox,right);
+            prefPanel.add(secondColourText,left);
+            prefPanel.add(secondColorBox,right);
+            prefPanel.add(lineWidthText,left);
+            prefPanel.add(shapeStrokeLength,right);
+            prefPanel.add(dashLengthText,left);
+            prefPanel.add(shapeDashLength,right);
+            prefPanel.add(isDashedText,left);
+            prefPanel.add(isShapeDashed,right);
+            
+            return prefPanel;
+        }
+    }
+}
